@@ -9,49 +9,65 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.IOException;
 
 /**
  * Created by zol on 3/12/2015.
  */
 public class Main {
     int numOfThreads;
-    public Main(int numOfThreads) {
+    String url;
+
+    public Main(int numOfThreads, String url) {
         this.numOfThreads = numOfThreads;
+        this.url = url;
     }
 
-    public  void main(String[] args) {
+    public static void main(String[] args) {
+        System.out.println("Started");
         int numOfThreads = 5;
 
         if (args.length == 0) {
             System.out.println("Usage: PdfFetcher <url>");
         }
-        new Main(numOfThreads).run();
 
+        new Main(numOfThreads, args[0]).run();
     }
 
     public void run() {
-        try {
-            URL url = new URL(args[0]);
-            String contents = downloadHtml(url);
-            ArrayList<URL> urls = getLinks(url, contents);
+        System.out.println("Starting to download " + this.url);
 
+        try {
+            URL url = new URL(this.url);
+            String contents = downloadHtml(url);
+            System.out.println(contents);
+            ArrayList<URL> urls = getLinks(url, contents);
+            System.out.println("Url count: " + urls.size());
             Runner[] threads = new Runner[numOfThreads];
 
             int t = 0;
             int aliveThreads = 0;
             while(urls.size() > 0) {
+                System.out.println("t: " + t);
                 // Next thread
                 t = t++ % (threads.length - 1);
                 // Wait while it's working
                 if (threads[t] != null && aliveThreads == numOfThreads) {
-                    while(threads[t].isAlive())
-                        wait(1);
+                    try {
+                        while(threads[t].isAlive()) {
+                            System.out.println("Waiting...");
+                            wait(1);
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        return;
+                    }
                     if (urls.size() < aliveThreads) {
                         aliveThreads--;
                     }
                 }
 
-                threads[t] = new Runner(urls.remove(urls.size()-1));
+                threads[t] = new Runner(urls.remove(urls.size()-1), "./");
                 threads[t].start();
                 aliveThreads++;
             }
@@ -94,7 +110,7 @@ public class Main {
             return baseurl + url;
         }
         throw new RuntimeException("Cannot make the link absolute. Url: " + baseurl
-                + " Link " + url);
+                                   + " Link " + url);
     }
 
     private  boolean valid(String url) {
@@ -108,19 +124,21 @@ public class Main {
             uc = url.openConnection();
 
             String contentType = uc.getContentType();
-            int encodingStart = contentType.indexOf("charset=");
-            if (encodingStart != -1) {
-                encoding = contentType.substring(encodingStart + 8);
+            if (contentType != null) {
+                int encodingStart = contentType.indexOf("charset=");
+                if (encodingStart != -1) {
+                    encoding = contentType.substring(encodingStart + 8);
+                }
             }
             InputStream in = new BufferedInputStream(uc.getInputStream());
             StringBuilder stringBuilder = new StringBuilder();
             try (Reader r = new InputStreamReader(in, encoding)) {
 
-                int c;
-                while ((c = r.read()) != -1) {
-                    stringBuilder.append((char) c);
+                    int c;
+                    while ((c = r.read()) != -1) {
+                        stringBuilder.append((char) c);
+                    }
                 }
-            }
             in.close();
             return stringBuilder.toString();
         } catch (MalformedURLException ex) {

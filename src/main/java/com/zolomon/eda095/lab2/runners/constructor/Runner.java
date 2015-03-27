@@ -1,4 +1,4 @@
-package com.zolomon.eda095.lab2.constructor;
+package com.zolomon.eda095.lab2.runners.constructor;
 
 import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
@@ -19,8 +19,9 @@ public class Runner extends Thread {
         this.path = path;
     }
 
-    public void run() throws IOException {
+    public void run() {
 
+        try {
             URLConnection con = url.openConnection();
             String contentType = con.getContentType();
             int contentLength = con.getContentLength();
@@ -29,27 +30,33 @@ public class Runner extends Thread {
             }
 
             try (InputStream raw = con.getInputStream()) {
-                InputStream in = new BufferedInputStream(raw);
-                byte[] data = new byte[contentLength];
-                int offset = 0;
-                while (offset < contentLength) {
-                    int bytesRead = in.read(data, offset, data.length - offset);
-                    if (bytesRead == -1) break;
-                    offset += bytesRead;
-                    //System.out.println("Read: " + bytesRead);
-                }
+                    InputStream in = new BufferedInputStream(raw);
+                    byte[] data = new byte[contentLength];
+                    int offset = 0;
+                    while (offset < contentLength) {
+                        int bytesRead = in.read(data, offset, data.length - offset);
+                        if (bytesRead == -1) break;
+                        offset += bytesRead;
+                        //System.out.println("Read: " + bytesRead);
+                    }
 
-                if (offset != contentLength) {
-                    throw new IOException("Only read " + offset + " bytes; Expected " + contentLength + " bytes in total");
-                }
+                    if (offset != contentLength) {
+                        throw new IOException("Only read " + offset + " bytes; Expected " + contentLength + " bytes in total");
+                    }
 
-                String filename = url.getFile();
-                filename = path + filename.substring(filename.lastIndexOf("/") + 1);
-                try (FileOutputStream fout = new FileOutputStream(filename)) {
-                    fout.write(data);
-                    fout.flush();
-                    System.out.println("File saved: " + filename);
-                }
+                    String filename = url.getFile();
+                    filename = path + filename.substring(filename.lastIndexOf("/") + 1);
+                    try (FileOutputStream fout = new FileOutputStream(filename)) {
+                            fout.write(data);
+                            fout.flush();
+                            System.out.println("File saved: " + filename);
+                        }
+                } catch (IOException e) {
+                e.printStackTrace();
             }
+        }catch (IOException e) {
+            e.printStackTrace();
+
+        }
     }
 }

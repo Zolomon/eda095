@@ -1,11 +1,18 @@
 apply plugin: 'java'
 
-sourceCompatibility = 1.8
+sourceCompatibility = 1.7
+
 version = '1.0'
+
 jar {
     manifest {
              attributes 'Implementation-Title': 'eda095',
              'Implementation-Version': version
-             
     }
+}
+
+task(lab2thread, dependsOn: 'classes', type: JavaExec) {
+    main = 'com.zolomon.eda095.lab2.thread.Main'
+    classpath = sourceSets.main.runtimeClasspath
+    args 'http://cs.lth.se/eda095/foerelaesningar/'
 }
