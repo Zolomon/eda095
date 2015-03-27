@@ -1,6 +1,6 @@
 package com.zolomon.eda095.lab2.thread;
 
-import com.zolomon.eda095.lab2.constructor.Runner;
+import com.zolomon.eda095.lab2.runners.constructor.Runner;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -14,35 +14,53 @@ import java.util.regex.Pattern;
  * Created by zol on 3/12/2015.
  */
 public class Main {
-    public static void main(String[] args) {
+    int numOfThreads;
+    public Main(int numOfThreads) {
+        this.numOfThreads = numOfThreads;
+    }
+
+    public  void main(String[] args) {
         int numOfThreads = 5;
 
         if (args.length == 0) {
             System.out.println("Usage: PdfFetcher <url>");
         }
+        new Main(numOfThreads).run();
+
+    }
+
+    public void run() {
         try {
             URL url = new URL(args[0]);
             String contents = downloadHtml(url);
             ArrayList<URL> urls = getLinks(url, contents);
 
             Runner[] threads = new Runner[numOfThreads];
-            for (int i = 0; i < threads.length; i++) {
-                threads[i] = new Runner(urls);
-            }
-            for (URL u : urls) {
-                try {
-                    downloadPdf(u);
-                } catch (IOException e) {
-                    System.out.println("Could not download: " + u.toString());
+
+            int t = 0;
+            int aliveThreads = 0;
+            while(urls.size() > 0) {
+                // Next thread
+                t = t++ % (threads.length - 1);
+                // Wait while it's working
+                if (threads[t] != null && aliveThreads == numOfThreads) {
+                    while(threads[t].isAlive())
+                        wait(1);
+                    if (urls.size() < aliveThreads) {
+                        aliveThreads--;
+                    }
                 }
+
+                threads[t] = new Runner(urls.remove(urls.size()-1));
+                threads[t].start();
+                aliveThreads++;
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
-
     }
 
-    private static ArrayList<URL> getLinks(URL baseurl, String contents) {
+    private  ArrayList<URL> getLinks(URL baseurl, String contents) {
         Pattern pattern = Pattern.compile("href=\"(?<link>.*?)\"");
         Matcher tagmatcher = pattern.matcher(contents);
         ArrayList<URL> urls = new ArrayList<>();
@@ -59,7 +77,7 @@ public class Main {
         return urls;
     }
 
-    private static String makeAbsolute(String baseurl, String url) {
+    private  String makeAbsolute(String baseurl, String url) {
         if (url.matches("http://.*")) {
             return url;
         }
@@ -79,11 +97,11 @@ public class Main {
                 + " Link " + url);
     }
 
-    private static boolean valid(String url) {
+    private  boolean valid(String url) {
         return !url.matches("javascript:.*|mailto:.*") && url.endsWith(".pdf");
     }
 
-    private static String downloadHtml(URL url) {
+    private  String downloadHtml(URL url) {
         String encoding = "ISO-8859-1";
         URLConnection uc = null;
         try {

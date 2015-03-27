@@ -10,7 +10,7 @@ import java.net.URLConnection;
 /**
  * Created by zol on 3/25/2015.
  */
-public class Runner {
+public class Runner extends Thread {
     private URL url;
     private String path;
 
@@ -18,6 +18,7 @@ public class Runner {
         this.url = url;
         this.path = path;
     }
+
     public void run() throws IOException {
 
             URLConnection con = url.openConnection();
