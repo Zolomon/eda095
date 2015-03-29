@@ -5,14 +5,21 @@ sourceCompatibility = 1.7
 version = '1.0'
 
 jar {
-    manifest {
-             attributes 'Implementation-Title': 'eda095',
-             'Implementation-Version': version
-    }
+  manifest {
+    attributes 'Implementation-Title': 'eda095',
+            'Implementation-Version': version
+  }
 }
 
-task(lab2thread, dependsOn: 'classes', type: JavaExec) {
-    main = 'com.zolomon.eda095.lab2.thread.Main'
-    classpath = sourceSets.main.runtimeClasspath
-    args 'http://cs.lth.se/eda095/foerelaesningar/'
+def pdfDir = new File('build/pdfs')
+
+task resources(dependsOn: 'classes') {
+  pdfDir.mkdirs()
+}
+
+task(lab2thread, dependsOn: 'resources', type: JavaExec) {
+  main = 'com.zolomon.eda095.lab2.thread.Main'
+  classpath = sourceSets.main.runtimeClasspath
+  //args = ['http://cs.lth.se/eda095/foerelaesningar/', pdfDir.toString()]
+  args = ['http://cs.lth.se/eda095/tidigare-aar/eda095-2014/foerelaesningar/?no_cache=1', pdfDir.toString()]
 }

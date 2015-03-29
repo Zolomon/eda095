@@ -17,10 +17,12 @@ import java.io.IOException;
 public class Main {
     int numOfThreads;
     String url;
-
-    public Main(int numOfThreads, String url) {
+    String path;
+    
+    public Main(int numOfThreads, String url, String path) {
         this.numOfThreads = numOfThreads;
         this.url = url;
+        this.path = path;
     }
 
     public static void main(String[] args) {
@@ -30,17 +32,35 @@ public class Main {
         if (args.length == 0) {
             System.out.println("Usage: PdfFetcher <url>");
         }
-
-        new Main(numOfThreads, args[0]).run();
+        
+        new Main(numOfThreads, args[0], args[1]).run();
     }
 
+    private void waitWhileRunning(Runner[] threads) {
+        try {
+            boolean isWaiting = true;
+            while (isWaiting) {
+                for(Runner r : threads) {
+                    if (r == null || (r != null && !r.isAlive())) {
+                        isWaiting = false;
+                        break;
+                    }
+                }
+                Thread.sleep(1);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return;
+        }
+    }
+    
     public void run() {
         System.out.println("Starting to download " + this.url);
 
         try {
             URL url = new URL(this.url);
             String contents = downloadHtml(url);
-            System.out.println(contents);
+            //System.out.println(contents);
             ArrayList<URL> urls = getLinks(url, contents);
             System.out.println("Url count: " + urls.size());
             Runner[] threads = new Runner[numOfThreads];
@@ -50,26 +70,28 @@ public class Main {
             while(urls.size() > 0) {
                 System.out.println("t: " + t);
                 // Next thread
-                t = t++ % (threads.length - 1);
-                // Wait while it's working
-                if (threads[t] != null && aliveThreads == numOfThreads) {
-                    try {
-                        while(threads[t].isAlive()) {
-                            System.out.println("Waiting...");
-                            wait(1);
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                    if (urls.size() < aliveThreads) {
-                        aliveThreads--;
-                    }
+                t++;
+                t = t % (numOfThreads - 1);
+                if (threads[t] != null && threads[t].isAlive()) {
+                    waitWhileRunning(threads);
                 }
-
-                threads[t] = new Runner(urls.remove(urls.size()-1), "./");
+                System.out.println(t);
+                // Wait while it's working
+                // if (threads[t] != null && aliveThreads == numOfThreads) {
+                //     waitWhileRunning(threads);
+                //     if (urls.size() < aliveThreads) {
+                //         aliveThreads--;
+                //     }
+                // }
+                System.out.println("Creating a new thread to download: "+ urls.get(urls.size()-1));
+                threads[t] = new Runner(urls.remove(urls.size()-1), path);
                 threads[t].start();
-                aliveThreads++;
+                if (aliveThreads < numOfThreads)
+                    aliveThreads++;
+
+                if (aliveThreads >= numOfThreads - 1) {
+                    waitWhileRunning(threads);
+                }
             }
         } catch (MalformedURLException e) {
             e.printStackTrace();
@@ -133,7 +155,6 @@ public class Main {
             InputStream in = new BufferedInputStream(uc.getInputStream());
             StringBuilder stringBuilder = new StringBuilder();
             try (Reader r = new InputStreamReader(in, encoding)) {
-
                     int c;
                     while ((c = r.read()) != -1) {
                         stringBuilder.append((char) c);
@@ -150,6 +171,4 @@ public class Main {
         }
         return null;
     }
-
-
 }
