@@ -18,7 +18,8 @@ public class Main {
     int numOfThreads;
     String url;
     String path;
-    
+    ArrayList<URL> urls;
+
     public Main(int numOfThreads, String url, String path) {
         this.numOfThreads = numOfThreads;
         this.url = url;
@@ -32,28 +33,14 @@ public class Main {
         if (args.length == 0) {
             System.out.println("Usage: PdfFetcher <url>");
         }
-        
+
         new Main(numOfThreads, args[0], args[1]).run();
     }
 
-    private void waitWhileRunning(Runner[] threads) {
-        try {
-            boolean isWaiting = true;
-            while (isWaiting) {
-                for(Runner r : threads) {
-                    if (r == null || (r != null && !r.isAlive())) {
-                        isWaiting = false;
-                        break;
-                    }
-                }
-                Thread.sleep(1);
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            return;
-        }
+    public synchronized URL getUrl() {
+        return this.urls.remove(urls.size()-1);
     }
-    
+
     public void run() {
         System.out.println("Starting to download " + this.url);
 
@@ -61,38 +48,16 @@ public class Main {
             URL url = new URL(this.url);
             String contents = downloadHtml(url);
             //System.out.println(contents);
-            ArrayList<URL> urls = getLinks(url, contents);
-            System.out.println("Url count: " + urls.size());
-            Runner[] threads = new Runner[numOfThreads];
+            this.urls = getLinks(url, contents);
 
-            int t = 0;
-            int aliveThreads = 0;
-            while(urls.size() > 0) {
-                System.out.println("t: " + t);
-                // Next thread
-                t++;
-                t = t % (numOfThreads - 1);
-                if (threads[t] != null && threads[t].isAlive()) {
-                    waitWhileRunning(threads);
-                }
-                System.out.println(t);
-                // Wait while it's working
-                // if (threads[t] != null && aliveThreads == numOfThreads) {
-                //     waitWhileRunning(threads);
-                //     if (urls.size() < aliveThreads) {
-                //         aliveThreads--;
-                //     }
-                // }
-                System.out.println("Creating a new thread to download: "+ urls.get(urls.size()-1));
-                threads[t] = new Runner(urls.remove(urls.size()-1), path);
-                threads[t].start();
-                if (aliveThreads < numOfThreads)
-                    aliveThreads++;
+            System.out.println("Creating " + numOfThreads + " threads.");
 
-                if (aliveThreads >= numOfThreads - 1) {
-                    waitWhileRunning(threads);
-                }
+            Runner[] runners = new Runner[numOfThreads];
+            for(int i = 0; i < runners.length; i++) {
+                runners[i] = new Runner(this, this.path);
+                runners[i].start();
             }
+
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
