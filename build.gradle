@@ -11,7 +11,7 @@ jar {
   }
 }
 
-def pdfDir = new File('build/pdfs')
+def pdfDir = new File('build/pdfs/')
 
 task resources(dependsOn: 'classes') {
   pdfDir.mkdirs()
@@ -22,4 +22,9 @@ task(lab2thread, dependsOn: 'resources', type: JavaExec) {
   classpath = sourceSets.main.runtimeClasspath
   //args = ['http://cs.lth.se/eda095/foerelaesningar/', pdfDir.toString()]
   args = ['http://cs.lth.se/eda095/tidigare-aar/eda095-2014/foerelaesningar/?no_cache=1', pdfDir.toString()]
+}
+
+task(lab3, dependsOn: 'classes', type: JavaExec) {
+    main = 'com.zolomon.eda095.lab3.EchoTcp2'
+    classpath = sourceSets.main.runtimeclasspath
 }
